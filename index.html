@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>✦ 给好朋友的一封信 ✦</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;background:radial-gradient(ellipse at center,#1a1a3a 0%,#0c0e22 100%);font-family:"PingFang SC","Microsoft YaHei",sans-serif;-webkit-tap-highlight-color:transparent}
+canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;background:transparent}
+#stage{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:1;width:88%;max-width:380px;text-align:center}
+.line{opacity:0;transform:translateY(20px);transition:opacity .6s,transform .6s;margin:6px 0;color:#d4d4e8;font-size:17px;line-height:1.8}
+.line.show{opacity:1;transform:translateY(0)}
+.line.pink{color:#f0a8c8}
+.line.gold{color:#f5c070}
+.line.dim{color:#887;font-size:15px}
+.line.cyan{color:#8cc8d8}
+.line.green{color:#a8d8a0}
+.line.orange{color:#f5b070}
+.line.magenta{color:#c8b8e8}
+.line.big{font-size:22px;margin:14px 0}
+.line.huge{font-size:30px;font-weight:bold;margin:18px 0}
+#hint{position:fixed;bottom:60px;left:0;width:100%;text-align:center;z-index:99;color:rgba(255,255,255,.35);font-size:14px;display:none}
+#hint.show{display:block;animation:blink 2s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:.2}50%{opacity:.8}}
+.star-wrap{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:2}
+.star-wrap svg{width:min(200px,55vw);animation:spin 3s ease-in-out infinite alternate,grow 1.2s ease-in-out infinite alternate;filter:drop-shadow(0 0 30px rgba(255,200,80,.6))}
+@keyframes spin{from{transform:rotate(-8deg)}to{transform:rotate(8deg)}}
+@keyframes grow{from{transform:scale(.9)}to{transform:scale(1.08)}}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="stage"></div>
+<div id="hint">✦ 轻触屏幕继续 ✦</div>
+<audio id="bgm" src="bgm.mp3" loop preload="auto" playsinline style="display:none"></audio>
+
+<script>
+// ── BGM ──────────────────────────────────────────
+const bgm=document.getElementById('bgm');
+bgm.volume=0.35;
+function startBGM(){
+  bgm.play().then(()=>{}).catch(()=>setTimeout(()=>bgm.play().catch(()=>{}),500));
+}
+
+// ── Canvas ──────────────────────────────────────
+const cv=document.getElementById('c'),ctx=cv.getContext('2d');
+let W,H;
+function rs(){W=cv.width=innerWidth;H=cv.height=innerHeight}
+rs();addEventListener('resize',rs);
+
+// Stars - dense, warm & colorful
+const stars=[];
+for(let i=0;i<250;i++){
+  stars.push({
+    x:Math.random()*W,y:Math.random()*H,
+    r:Math.random()*2+.2,b:Math.random(),
+    s:Math.random()*.015+.003,ph:Math.random()*6.28,
+    twinkle:Math.random()<.15
+  });
+}
+
+// Shooting stars
+let shooter=null;
+function ns(){shooter={x:Math.random()*W*.8+W*.1,y:Math.random()*H*.35,vx:(Math.random()>.5?1:-1)*(Math.random()*2.5+1),vy:Math.random()*1.2+.4,trail:[],len:18+Math.random()*15|0,life:35+Math.random()*30|0,age:0}}
+
+function draw(){
+  // Gradient background - warmer, friendship vibe
+  const bg=ctx.createLinearGradient(0,0,0,H);
+  bg.addColorStop(0,'#1a1838');
+  bg.addColorStop(.3,'#181530');
+  bg.addColorStop(.6,'#141028');
+  bg.addColorStop(1,'#100c22');
+  ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
+
+  // Glow orbs - warm & golden tones
+  const t=Date.now()/1000;
+  for(let i=0;i<6;i++){
+    const x=W*(.15+i*.15+.1*Math.sin(t*.25+i));
+    const y=H*(.25+.2*Math.cos(t*.2+i*2));
+    const r=100+Math.sin(t*.35+i)*20;
+    const g=ctx.createRadialGradient(x,y,0,x,y,r);
+    const hue=[40,60,320,280,20,340][i]; // gold, yellow, pink, purple, orange, magenta
+    g.addColorStop(0,`hsla(${hue},45%,55%,.07)`);
+    g.addColorStop(.5,`hsla(${hue},40%,35%,.03)`);
+    g.addColorStop(1,'transparent');
+    ctx.fillStyle=g;ctx.fillRect(x-r,y-r,r*2,r*2);
+  }
+
+  // Stars
+  stars.forEach(s=>{
+    s.b+=Math.sin(s.ph)*(s.twinkle?.04:.015);
+    s.ph+=s.s;
+    s.b=Math.max(.05,Math.min(1,s.b));
+    const a=s.b;
+    ctx.fillStyle=`rgba(${255*a|0},${240*a|0},${225*a|0},${a*.9})`;
+    ctx.beginPath();ctx.arc(s.x,s.y,s.r,0,6.28);ctx.fill();
+    if(a>.5){
+      ctx.fillStyle=`rgba(255,240,220,${a*.12})`;
+      ctx.beginPath();ctx.arc(s.x,s.y,s.r*2,0,6.28);ctx.fill();
+    }
+  });
+
+  // Shooting stars
+  if(shooter){shooter.age++;shooter.x+=shooter.vx;shooter.y+=shooter.vy;shooter.trail.unshift({x:shooter.x,y:shooter.y});if(shooter.trail.length>shooter.len)shooter.trail.pop();if(shooter.age>shooter.life||shooter.y>H||shooter.x<0||shooter.x>W)shooter=null}
+  if(!shooter&&Math.random()<.01)ns();
+  if(shooter)shooter.trail.forEach((p,i)=>{
+    const a=1-i/shooter.len;
+    const v=180*a+75|0;
+    ctx.fillStyle=`rgba(${v},${v},255,${a})`;
+    ctx.beginPath();ctx.arc(p.x,p.y,3*(1-i/shooter.len)+.5,0,6.28);ctx.fill();
+  });
+
+  requestAnimationFrame(draw);
+}draw();
+
+// ── Floating symbols (stars, flowers, sparkles) ──
+const pc='*✦✿❀♥♡•✧✽❋';
+setInterval(()=>{
+  if(document.querySelectorAll('.petal').length>60)return;
+  if(Math.random()>.6)return;
+  const e=document.createElement('div');
+  e.className='petal';e.textContent=pc[Math.random()*pc.length|0];
+  // Friendship colors - warm and cheerful
+  e.style.cssText=`position:fixed;z-index:1;pointer-events:none;left:${Math.random()*90+5}%;top:-5%;font-size:${Math.random()*16+12}px;color:${['#f5c070','#f0a8c8','#a8d8a0','#8cc8d8','#ffb8a0','#e8d5f5','#f5d870'][Math.random()*7|0]};animation:fall ${Math.random()*7+4}s linear forwards;opacity:${Math.random()*.4+.6}`;
+  document.body.appendChild(e);
+  setTimeout(()=>e.remove(),13000);
+},200);
+const s=document.createElement('style');
+s.textContent='@keyframes fall{0%{opacity:1;transform:translateY(0) rotate(0deg) translateX(0)}70%{opacity:1}100%{opacity:0;transform:translateY(105vh) rotate(720deg) translateX(30px)}}';
+document.head.appendChild(s);
+
+// ── Scenes (friendship celebration) ─────────────
+const scenes=[
+  [{t:'嘿，你知道吗——',c:'dim'},{t:'今天突然很想跟你说些话。',c:'dim',w:1800},{t:'不是什么大事，',c:''},{t:'就是觉得有你这个朋友真好。',c:'gold',w:2200}],
+  [{t:'想想我们认识这么久了，',c:'cyan'},{t:'一起干过的傻事',c:''},{t:'能数出一箩筐，',c:'',w:1600},{t:'但每一件都挺开心的。',c:'pink',w:2200}],
+  [{t:'深夜聊到三点还不想睡，',c:''},{t:'为了一杯奶茶跑了半个城，',c:'',w:1800},{t:'笑到肚子疼的那些瞬间——',c:'orange'},{t:'我都记得。',c:'gold',w:2200}],
+  [{t:'你总在我需要的时候出现。',c:'green'},{t:'不用多说什么，',c:'dim',w:1400},{t:'你在就够了。',c:'cyan big',w:2000},{t:'这比什么都重要。',c:'gold',w:2000}],
+  [{t:'好朋友不该只在生日才被想起。',c:'dim',w:1600},{t:'所以今天，',c:'',w:1000},{t:'就是普通的一天——',c:''},{t:'但我想认认真真庆祝一下。',c:'magenta big',w:2400}],
+  [{type:'s'}],
+  [{t:'谢谢你一直在。',c:'gold big',w:2000},{t:'不管是开心的还是难熬的日子，',c:''},{t:'你都没缺席过。',c:'cyan',w:2000},{t:'这种感觉，真的很踏实。',c:'green',w:2200}],
+  [{t:'以后的路还长，',c:''},{t:'会经历更多的事，',c:'dim',w:1400},{t:'但我希望——',c:'pink',w:1200},{t:'身边一直有你。',c:'gold big',w:2400}],
+  [{t:'',c:'',w:400},{t:'所以，',c:'dim',w:800},{t:'',c:'',w:300},{t:'友谊万岁！',c:'pink huge',w:2800}],
+  [{type:'s2'}],
+  [{t:'你看到这颗星星的时候，',c:'dim',w:1600},{t:'就当是我隔着屏幕',c:''},{t:'跟你击了个掌。',c:'gold big',w:2400},{t:'下次见面，我请奶茶。',c:'green',w:2200}],
+];
+
+let si=0,li=0,busy=false,timer=null;
+const stage=document.getElementById('stage'),hint=document.getElementById('hint');
+
+function clearAll(){
+  stage.innerHTML='';
+  hint.classList.remove('show');
+  const h=document.querySelector('.star-wrap');if(h)h.remove();
+}
+
+function showLine(){
+  const scene=scenes[si];
+  if(li>=scene.length){
+    busy=false;
+    // After star scenes, auto-advance
+    if(si===5||si===9){si++;if(si<scenes.length)showScene();return}
+    hint.classList.add('show');
+    return;
+  }
+  const l=scene[li++];
+  if(l.type==='s'){
+    // Glowing five-pointed star
+    const wrap=document.createElement('div');
+    wrap.className='star-wrap';
+    wrap.innerHTML='<svg viewBox="0 0 100 100"><path d="M50 5 L61 38 L96 38 L67 59 L78 92 L50 72 L22 92 L33 59 L4 38 L39 38 Z" fill="#f5c070" stroke="#ffd990" stroke-width="2"/></svg>';
+    document.body.appendChild(wrap);
+    timer=setTimeout(()=>{wrap.remove();li=0;si++;if(si<scenes.length)showScene()},4000);
+    return;
+  }
+  if(l.type==='s2'){
+    // Burst of stars
+    const wrap=document.createElement('div');
+    wrap.className='star-wrap';
+    wrap.innerHTML='<svg viewBox="0 0 200 200"><g fill="#f5c070" stroke="#ffd990" stroke-width="1.5"><path d="M100 15 L112 48 L147 48 L118 69 L129 102 L100 82 L71 102 L82 69 L53 48 L88 48 Z"/><path d="M40 60 L48 80 L68 80 L52 92 L58 112 L40 100 L22 112 L28 92 L12 80 L32 80 Z" transform="scale(.6)" opacity=".7"/><path d="M160 60 L168 80 L188 80 L172 92 L178 112 L160 100 L142 112 L148 92 L132 80 L152 80 Z" transform="scale(.6)" opacity=".7"/></g></svg>';
+    document.body.appendChild(wrap);
+    timer=setTimeout(()=>{wrap.remove();li=0;si++;if(si<scenes.length)showScene()},4000);
+    return;
+  }
+  const el=document.createElement('div');
+  el.className='line';
+  if(l.c)el.className+=' '+l.c;
+  el.textContent=l.t;
+  stage.appendChild(el);
+  requestAnimationFrame(()=>el.classList.add('show'));
+  timer=setTimeout(showLine,l.w||(l.t.trim()?l.t.length*65+400:300));
+}
+
+function showScene(){
+  if(si>=scenes.length){hint.classList.remove('show');return}
+  clearAll();li=0;busy=true;showLine();
+}
+
+function advance(){
+  startBGM();
+  if(busy)return;
+  if(timer)clearTimeout(timer);
+  hint.classList.remove('show');
+  si++;
+  if(si>=scenes.length){hint.classList.remove('show');return}
+  showScene();
+}
+
+// Bind both click and touchend for mobile compatibility
+document.addEventListener('click',advance);
+document.addEventListener('touchend',function(e){e.preventDefault();advance()},{passive:false});
+
+showScene(0);
+</script>
+</body>
+</html>
