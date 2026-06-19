@@ -9,20 +9,20 @@
 html,body{width:100%;height:100%;overflow:hidden;font-family:"PingFang SC","Microsoft YaHei",sans-serif;-webkit-tap-highlight-color:transparent}
 canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0}
 #stage{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:1;width:88%;max-width:380px;text-align:center}
-.line{opacity:0;transform:translateY(20px);transition:opacity .6s,transform .6s;margin:6px 0;color:#fff8e8;font-size:17px;line-height:1.8;text-shadow:0 0 12px rgba(255,200,120,.3)}
+.line{opacity:0;transform:translateY(20px);transition:opacity .6s,transform .6s;margin:6px 0;color:#e8f0ff;font-size:17px;line-height:1.8;text-shadow:0 0 15px rgba(100,200,255,.25)}
 .line.show{opacity:1;transform:translateY(0)}
-.line.pink{color:#ffb0c8}
-.line.gold{color:#f5c070}
-.line.dim{color:rgba(255,240,220,.5);font-size:15px}
-.line.cyan{color:#8cd0e0}
-.line.green{color:#a8d8a0}
+.line.pink{color:#f0a8c8}
+.line.gold{color:#f5d890}
+.line.dim{color:rgba(200,220,240,.5);font-size:15px}
+.line.cyan{color:#80d8e8}
+.line.green{color:#98d8a8}
 .line.big{font-size:22px;margin:14px 0}
 .line.huge{font-size:30px;font-weight:bold;margin:18px 0}
 #hint{position:fixed;bottom:60px;left:0;width:100%;text-align:center;z-index:99;color:rgba(255,255,255,.3);font-size:14px;display:none}
 #hint.show{display:block;animation:blink 2s ease-in-out infinite}
 @keyframes blink{0%,100%{opacity:.2}50%{opacity:.8}}
 .gift-wrap{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:2}
-.gift-wrap svg{width:min(160px,50vw);animation:float 2s ease-in-out infinite alternate;filter:drop-shadow(0 0 40px rgba(255,180,80,.6))}
+.gift-wrap svg{width:min(160px,50vw);animation:float 2s ease-in-out infinite alternate;filter:drop-shadow(0 0 40px rgba(120,220,180,.6))}
 @keyframes float{from{transform:translateY(-8px) rotate(-5deg)}to{transform:translateY(8px) rotate(5deg)}}
 </style>
 </head>
@@ -36,48 +36,61 @@ canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0}
 const bgm=document.getElementById('bgm');bgm.volume=.35;
 function startBGM(){bgm.play().then(()=>{}).catch(()=>setTimeout(()=>bgm.play().catch(()=>{}),500))}
 
-// Canvas — warm bubbles rising
+// Canvas — aurora flowing waves
 const cv=document.getElementById('c'),ctx=cv.getContext('2d');
 let W,H;function rs(){W=cv.width=innerWidth;H=cv.height=innerHeight}rs();addEventListener('resize',rs);
 
-const bubbles=[];
-for(let i=0;i<35;i++){
-  bubbles.push({x:Math.random()*W,y:H+Math.random()*H*2,r:Math.random()*40+10,vy:-(Math.random()*.6+.2),vx:Math.random()*.4-.2,hue:Math.random()<.5?35:15,alpha:Math.random()*.15+.05,wob:Math.random()*6.28,ws:Math.random()*.02+.01});
+// Light particles
+const pts=[];
+for(let i=0;i<80;i++){
+  pts.push({x:Math.random()*W,y:Math.random()*H,r:Math.random()*2.5+.5,vy:-(Math.random()*.3+.1),vx:Math.random()*.2-.1,ph:Math.random()*6.28,sp:Math.random()*.02+.005,hue:Math.random()<.5?160:200});
 }
 
 function draw(){
-  // Warm gradient background
+  // Deep teal-blue gradient
   const bg=ctx.createLinearGradient(0,0,0,H);
-  bg.addColorStop(0,'#2a1a18');
-  bg.addColorStop(.4,'#251516');
-  bg.addColorStop(1,'#1a0e10');
+  bg.addColorStop(0,'#0a1a1e');
+  bg.addColorStop(.5,'#0a1820');
+  bg.addColorStop(1,'#081218');
   ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
 
-  // Glow spots
   const t=Date.now()/1000;
-  for(let i=0;i<4;i++){
-    const x=W*(.2+i*.2+.08*Math.sin(t*.2+i));
-    const y=H*(.3+.15*Math.cos(t*.15+i*1.5));
-    const r=120+Math.sin(t*.3+i)*30;
-    const g=ctx.createRadialGradient(x,y,0,x,y,r);
-    const hue=[25,40,350,15][i];
-    g.addColorStop(0,`hsla(${hue},50%,50%,.08)`);
+
+  // Aurora bands — flowing sine waves
+  for(let band=0;band<4;band++){
+    const baseY=H*(.2+band*.2);
+    const amp=40+band*15;
+    const speed=t*(.3+band*.1);
+    const hues=[160,180,140,200];
+    const hue=hues[band];
+    
+    ctx.beginPath();
+    ctx.moveTo(0,baseY);
+    for(let x=0;x<=W;x+=8){
+      const y=baseY+Math.sin(x*.008+speed)*amp+Math.sin(x*.02+speed*1.5)*amp*.3;
+      ctx.lineTo(x,y);
+    }
+    ctx.lineTo(W,H);ctx.lineTo(0,H);ctx.closePath();
+    
+    const g=ctx.createLinearGradient(0,baseY-amp,0,baseY+amp+100);
+    g.addColorStop(0,`hsla(${hue},60%,50%,0)`);
+    g.addColorStop(.3,`hsla(${hue},55%,45%,.08)`);
+    g.addColorStop(.6,`hsla(${hue},45%,35%,.05)`);
     g.addColorStop(1,'transparent');
-    ctx.fillStyle=g;ctx.fillRect(x-r,y-r,r*2,r*2);
+    ctx.fillStyle=g;ctx.fill();
   }
 
-  // Bubbles rising
-  bubbles.forEach(b=>{
-    b.y+=b.vy;b.x+=Math.sin(b.wob)*b.vx;b.wob+=b.ws;
-    if(b.y<-b.r*2){b.y=H+b.r;b.x=Math.random()*W}
-    const g=ctx.createRadialGradient(b.x-b.r*.3,b.y-b.r*.3,0,b.x,b.y,b.r);
-    g.addColorStop(0,`hsla(${b.hue},60%,70%,${b.alpha*2})`);
-    g.addColorStop(.6,`hsla(${b.hue},50%,50%,${b.alpha})`);
+  // Glowing particles
+  pts.forEach(p=>{
+    p.y+=p.vy;p.x+=Math.sin(p.ph)*p.vx;p.ph+=p.sp;
+    if(p.y<-10){p.y=H+10;p.x=Math.random()*W}
+    const a=.4+Math.sin(p.ph*2)*.3;
+    const g=ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,p.r*4);
+    g.addColorStop(0,`hsla(${p.hue},70%,70%,${a*.6})`);
     g.addColorStop(1,'transparent');
-    ctx.fillStyle=g;ctx.beginPath();ctx.arc(b.x,b.y,b.r,0,6.28);ctx.fill();
-    // Highlight
-    ctx.fillStyle=`rgba(255,240,220,${b.alpha*.5})`;
-    ctx.beginPath();ctx.arc(b.x-b.r*.3,b.y-b.r*.3,b.r*.15,0,6.28);ctx.fill();
+    ctx.fillStyle=g;ctx.beginPath();ctx.arc(p.x,p.y,p.r*4,0,6.28);ctx.fill();
+    ctx.fillStyle=`hsla(${p.hue},80%,80%,${a})`;
+    ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,6.28);ctx.fill();
   });
 
   requestAnimationFrame(draw);
@@ -90,19 +103,19 @@ setInterval(()=>{
   if(Math.random()>.55)return;
   const e=document.createElement('div');
   e.className='petal';e.textContent=pc[Math.random()*pc.length|0];
-  e.style.cssText=`position:fixed;z-index:1;pointer-events:none;left:${Math.random()*90+5}%;top:-5%;font-size:${Math.random()*14+10}px;color:${['#f5c070','#f0a8c8','#ffb8a0','#e8d5b0','#f5d870'][Math.random()*5|0]};animation:fall ${Math.random()*6+4}s linear forwards;opacity:${Math.random()*.4+.5}`;
+  e.style.cssText=`position:fixed;z-index:1;pointer-events:none;left:${Math.random()*90+5}%;top:-5%;font-size:${Math.random()*14+10}px;color:${['#80d8e8','#98d8a8','#f0a8c8','#c8d8f0','#a0e0c8'][Math.random()*5|0]};animation:fall ${Math.random()*6+4}s linear forwards;opacity:${Math.random()*.4+.5}`;
   document.body.appendChild(e);setTimeout(()=>e.remove(),12000);
 },200);
 const s=document.createElement('style');
 s.textContent='@keyframes fall{0%{opacity:1;transform:translateY(0) rotate(0)}80%{opacity:1}100%{opacity:0;transform:translateY(105vh) rotate(540deg)}}';
 document.head.appendChild(s);
 
-// Scenes — no specific events, universal friendship
+// Scenes
 const scenes=[
   [{t:'嘿，',c:'dim'},{t:'有些话平时不太说，',c:'dim',w:1600},{t:'但今天想认真讲一下。',c:'cyan',w:2000}],
   [{t:'有你这个朋友，',c:''},{t:'我一直觉得挺幸运的。',c:'pink',w:2200}],
   [{t:'不用天天联系，',c:'dim',w:1400},{t:'但知道你在，',c:'cyan',w:1600},{t:'就很安心。',c:'gold',w:2000}],
-  [{t:'好朋友就是这样——',c:'dim',w:1600},{t:'不用多说什么，',c:''},{t:'都懂。',c:'cyan big',w:2000}],
+  [{t:'好朋友就是这样——',c:'dim',w:1600},{t:'不用多说什么，',c:''},{t:'都懂。',c:'green big',w:2000}],
   [{t:'谢谢你一直都在。',c:'gold big',w:2600}],
   [{type:'g'}],
   [{t:'不管以后怎样，',c:'dim',w:1400},{t:'希望我们一直是朋友。',c:'pink big',w:2600}],
@@ -120,7 +133,7 @@ function showLine(){
   const l=scene[li++];
   if(l.type==='g'){
     const w=document.createElement('div');w.className='gift-wrap';
-    w.innerHTML='<svg viewBox="0 0 100 110"><rect x="15" y="40" width="70" height="60" rx="4" fill="#f5c070" stroke="#ffd990" stroke-width="2"/><rect x="10" y="35" width="80" height="12" rx="3" fill="#f0a8c8" stroke="#ffc0d0" stroke-width="2"/><path d="M50 35 C30 20,20 25,25 30 C30 35,50 35,50 35 C50 35,70 35,75 30 C80 25,70 20,50 35Z" fill="#f0a8c8" stroke="#ffc0d0" stroke-width="2"/><rect x="46" y="35" width="8" height="65" fill="#e898b8"/></svg>';
+    w.innerHTML='<svg viewBox="0 0 100 110"><rect x="15" y="40" width="70" height="60" rx="4" fill="#80d8e8" stroke="#a0e8f8" stroke-width="2"/><rect x="10" y="35" width="80" height="12" rx="3" fill="#98d8a8" stroke="#b8e8c8" stroke-width="2"/><path d="M50 35 C30 20,20 25,25 30 C30 35,50 35,50 35 C50 35,70 35,75 30 C80 25,70 20,50 35Z" fill="#98d8a8" stroke="#b8e8c8" stroke-width="2"/><rect x="46" y="35" width="8" height="65" fill="#78c898"/></svg>';
     document.body.appendChild(w);
     timer=setTimeout(()=>{w.remove();li=0;si++;if(si<scenes.length)showScene()},4000);return;
   }
